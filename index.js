@@ -1,4 +1,6 @@
 const readline = require("readline");
+const path = require("path");
+const fs = require("fs");
 const helper = require("./helper");
 const getSpeciesUrlsMap = require("./functions/getSpeciesUrlsMap");
 const downloadSpeciesUrlsMap = require("./functions/downloadSpeciesUrlsMap");
@@ -15,21 +17,14 @@ const rl = readline.createInterface({
  * @param {string} downloadDirName
  * @param {number} apiSleepTime
  */
-async function main(
-  csvToRead,
-  source,
-  downloadDirName = "downloads",
-  tag = "photo",
-  apiSleepTime = 0,
-  simultaneousImageDownloads = 30
-) {
+async function main(csvToRead, source, simultaneousImageDownloads = 50) {
+
   // Read the CSV file and create a map of ID to photos urls (ex: { "1": ["url1", "url2"] })
   const speciesUrlsMap = await getSpeciesUrlsMap(
     csvToRead,
     source === "fishbase"
       ? helper.fetchFishbasePhotosUrls
-      : helper.fetchINaturalistPhotosUrls,
-    apiSleepTime
+      : helper.fetchINaturalistPhotosUrls
   );
 
   // Ask the user if they want to download the photos
@@ -46,30 +41,22 @@ async function main(
   rl.close();
 
   // Download the photos
+  const downloadDir = path.join(__dirname, "downloads");
+  if (!fs.existsSync(downloadDir)) {
+    fs.mkdirSync(downloadDir);
+  }
+  const downloadDirSource = path.join(downloadDir, `${source}`);
   await downloadSpeciesUrlsMap(
     speciesUrlsMap,
-    downloadDirName,
-    tag,
+    downloadDirSource,
+    source,
     simultaneousImageDownloads
   );
 
   console.log("Done. Wait for the script to exit.");
 }
 
-// main(
-//   "poissons_premiere_selection.csv",
-//   helper.fetchINaturalistPhotosUrls,
-//   "downloads-inaturalist",
-//   "inaturalist",
-//   0,
-//   30
-// );
+main(process.argv[2], process.argv[3]);
 
-main(
-  "poissons_premiere_selection.csv",
-  helper.fetchFishbasePhotosUrls,
-  "downloads-fishbase",
-  "fishbase",
-  0,
-  30
-);
+// main("poissons_premiere_selection.csv", "fishbase");
+// main("poissons_premiere_selection.csv", "inaturalist");

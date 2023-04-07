@@ -6,7 +6,7 @@ const csv = require("csv-parser");
 /**
  * Read the CSV file and return a map of ID to photos urls (ex: { "1": ["url1", "url2"] })
  */
-async function getSpeciesUrlsMap(csvToRead, fetchUrlsFunc, apiSleepTime) {
+async function getSpeciesUrlsMap(csvToRead, fetchUrlsFunc) {
   const csvData = await readCSVFile(csvToRead);
 
   let speciesUrlsMap = {};
@@ -20,7 +20,7 @@ async function getSpeciesUrlsMap(csvToRead, fetchUrlsFunc, apiSleepTime) {
   );
 
   // Fetch the photos urls for each species in the CSV file
-  console.log(`Fetching photos urls (debounce time: ${apiSleepTime}ms)...`);
+  console.log(`Fetching photos urls...`);
   progressBar.start(csvData.length, 0);
   for (const index in csvData) {
     const scientificName = csvData[index].nom_scientifique;
@@ -28,14 +28,9 @@ async function getSpeciesUrlsMap(csvToRead, fetchUrlsFunc, apiSleepTime) {
 
     try {
       let urls = await fetchUrlsFunc(scientificName);
-      await new Promise((resolve) => setTimeout(resolve, apiSleepTime));
       if (urls !== null) speciesUrlsMap[ID] = urls;
     } catch (error) {
-      if (error === helper.ERROR_TYPE.NOT_FOUND) {
-        notFoundList.push(scientificName);
-      } else {
-        throw error;
-      }
+      notFoundList.push(scientificName);
     }
     progressBar.increment();
   }

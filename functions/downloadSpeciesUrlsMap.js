@@ -8,12 +8,11 @@ const helper = require("../helper");
  */
 async function downloadSpeciesUrlsMap(
   speciesUrlsMap,
-  downloadDirName,
-  tag,
+  downloadDir,
+  source,
   simultaneousDownloads = 200
 ) {
   // Create the download directory if it doesn't exist
-  const downloadDir = path.join(__dirname, '../', downloadDirName);
   if (!fs.existsSync(downloadDir)) {
     fs.mkdirSync(downloadDir);
   }
@@ -50,7 +49,7 @@ async function downloadSpeciesUrlsMap(
         if (response?.status === 404) {
           console.error(`404 - ${image}`);
         } else if (response?.status === 200) {
-          const fileName = `${key}_${tag}_${Number(i)+1}.jpg`;
+          const fileName = `${key}_${source}_${Number(i)+1}.jpg`;
           const imagePath = path.join(directoryPath, fileName);
           response.data.pipe(fs.createWriteStream(imagePath));
         } else {

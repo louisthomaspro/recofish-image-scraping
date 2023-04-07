@@ -1,5 +1,5 @@
 /node_modules
 /package-lock.json
 /*.7z
-/downloads-fishbase
-/downloads-inaturalist
+/downloads
+/species-not-found.txt

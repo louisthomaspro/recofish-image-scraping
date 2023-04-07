@@ -1,13 +1,20 @@
 ## How to execute the script
 
+> **Prerequisites** <br>
+> NodeJS
+
+
 1. Clone the repository
 ```bash
-git clone
+git clone https://github.com/louisthomaspro/recofish-image-scraping.git
 ```
 2. Change directory to the repository
 ```bash
-cd
+cd /recofish-image-scraping
 ```
 3. Run the script
 ```bash
-node
+node index.js poissons_premiere_selection.csv fishbase
+# or
+node index.js poissons_premiere_selection.csv inaturalist
+```
