@@ -17,14 +17,14 @@ const rl = readline.createInterface({
  * @param {string} downloadDirName
  * @param {number} apiSleepTime
  */
-async function main(csvToRead, source, simultaneousImageDownloads = 50) {
-
+async function main(csvToRead, source, maxConcurrentRequests = 2, simultaneousImageDownloads = 50) {
   // Read the CSV file and create a map of ID to photos urls (ex: { "1": ["url1", "url2"] })
   const speciesUrlsMap = await getSpeciesUrlsMap(
     csvToRead,
     source === "fishbase"
       ? helper.fetchFishbasePhotosUrls
-      : helper.fetchINaturalistPhotosUrls
+      : helper.fetchINaturalistPhotosUrls,
+      maxConcurrentRequests
   );
 
   // Ask the user if they want to download the photos
@@ -56,7 +56,7 @@ async function main(csvToRead, source, simultaneousImageDownloads = 50) {
   console.log("Done. Wait for the script to exit.");
 }
 
-main(process.argv[2], process.argv[3]);
+main(process.argv[2], process.argv[3], Number(process.argv[4]), Number(process.argv[5]));
 
 // main("poissons_premiere_selection.csv", "fishbase");
 // main("poissons_premiere_selection.csv", "inaturalist");

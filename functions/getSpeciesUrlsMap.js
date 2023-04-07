@@ -1,12 +1,16 @@
 const cliProgress = require("cli-progress");
 const fs = require("fs");
-const helper = require("../helper");
 const csv = require("csv-parser");
+const PromisePool = require("es6-promise-pool");
 
 /**
  * Read the CSV file and return a map of ID to photos urls (ex: { "1": ["url1", "url2"] })
  */
-async function getSpeciesUrlsMap(csvToRead, fetchUrlsFunc) {
+async function getSpeciesUrlsMap(
+  csvToRead,
+  fetchUrlsFunc,
+  maxConcurrentRequests
+) {
   const csvData = await readCSVFile(csvToRead);
 
   let speciesUrlsMap = {};
@@ -19,22 +23,30 @@ async function getSpeciesUrlsMap(csvToRead, fetchUrlsFunc) {
     cliProgress.Presets.shades_classic
   );
 
+  // Create a promise pool to limit the number of concurrent requests
+  const promiseGenerator = function* () {
+    for (const index in csvData) {
+      const scientificName = csvData[index].nom_scientifique;
+      const ID = csvData[index].ID;
+      yield fetchUrlsFunc(scientificName)
+        .then((urls) => {
+          if (urls == null) {
+            notFoundList.push(scientificName);
+          } else {
+            speciesUrlsMap[ID] = urls;
+          }
+        })
+        .finally(() => {
+          progressBar.increment();
+        });
+    }
+  };
+  const pool = new PromisePool(promiseGenerator, maxConcurrentRequests);
+
   // Fetch the photos urls for each species in the CSV file
   console.log(`Fetching photos urls...`);
   progressBar.start(csvData.length, 0);
-  for (const index in csvData) {
-    const scientificName = csvData[index].nom_scientifique;
-    const ID = csvData[index].ID;
-
-    try {
-      let urls = await fetchUrlsFunc(scientificName);
-      if (urls !== null) speciesUrlsMap[ID] = urls;
-    } catch (error) {
-      notFoundList.push(scientificName);
-    }
-    progressBar.increment();
-  }
-
+  await pool.start();
   progressBar.stop();
 
   // Write the list of species not found to a file

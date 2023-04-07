@@ -14,7 +14,7 @@ cd /recofish-image-scraping
 ```
 3. Run the script
 ```bash
-node index.js poissons_premiere_selection.csv fishbase
+node index.js poissons_premiere_selection.csv fishbase 100 20
 # or
-node index.js poissons_premiere_selection.csv inaturalist
+node index.js poissons_premiere_selection.csv inaturalist 2 20
 ```
