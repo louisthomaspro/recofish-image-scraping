@@ -1,6 +1,7 @@
 const cliProgress = require("cli-progress");
 const fs = require("fs");
 const path = require("path");
+const PromisePool = require("es6-promise-pool");
 const helper = require("../helper");
 
 /**
@@ -10,7 +11,7 @@ async function downloadSpeciesUrlsMap(
   speciesUrlsMap,
   downloadDir,
   source,
-  simultaneousDownloads = 200
+  simultaneousDownloads = 20
 ) {
   // Create the download directory if it doesn't exist
   if (!fs.existsSync(downloadDir)) {
@@ -20,22 +21,18 @@ async function downloadSpeciesUrlsMap(
   const progressBar = new cliProgress.SingleBar(
     {
       format:
-        "[{bar}] {percentage}% | ETA: {eta_formatted} | {value}/{total} | ",
+        "[{bar}] {percentage}% | {value}/{total} | ",
     },
     cliProgress.Presets.shades_classic
   );
 
-  const keys = Object.keys(speciesUrlsMap);
   const totalPhotos = Object.values(speciesUrlsMap).flat().length;
   progressBar.start(totalPhotos, 0);
 
-  const downloadPromises = [];
-  for (let i = 0; i < keys.length; i += simultaneousDownloads) {
-    const chunk = keys.slice(i, i + simultaneousDownloads);
-
-    const promises = chunk.map(async (key) => {
+  // Create a generator function that yields a promise for each download
+  const promiseGenerator = function* () {
+    for (let key in speciesUrlsMap) {
       const images = speciesUrlsMap[key];
-
       const directoryPath = path.join(downloadDir, key);
       if (!fs.existsSync(directoryPath)) {
         fs.mkdirSync(directoryPath);
@@ -43,27 +40,30 @@ async function downloadSpeciesUrlsMap(
 
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
-        const response = await helper.axiosWithProxy(image, {
-          responseType: "stream",
-        });
-        if (response?.status === 404) {
-          console.error(`404 - ${image}`);
-        } else if (response?.status === 200) {
-          const fileName = `${key}_${source}_${Number(i)+1}.jpg`;
-          const imagePath = path.join(directoryPath, fileName);
-          response.data.pipe(fs.createWriteStream(imagePath));
-        } else {
-          console.error(response)
-          throw "Unknown error";
-        }
-        progressBar.increment();
+        const fileName = `${key}_${source}_${Number(i) + 1}.jpg`;
+        const imagePath = path.join(directoryPath, fileName);
+
+        // Yield a promise for each download
+        yield helper
+          .axiosWithProxy(image, {
+            responseType: "stream",
+          })
+          .then((response) => {
+            return response.data.pipe(fs.createWriteStream(imagePath));
+          })
+          .catch((error) => {
+            console.error(`Error downloading ${image}`, error.response?.status);
+          })
+          .finally(() => {
+            progressBar.increment();
+          });
       }
-    });
+    }
+  };
 
-    downloadPromises.push(Promise.all(promises));
-  }
-
-  await Promise.all(downloadPromises);
+  // Use PromisePool to limit the number of simultaneous downloads
+  const pool = new PromisePool(promiseGenerator, simultaneousDownloads);
+  await pool.start();
 
   progressBar.stop();
 }

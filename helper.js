@@ -56,7 +56,7 @@ async function fetchFishbasePhotosUrls(scientificName) {
     db.all(query, (err, rows) => {
       if (err) {
         console.error(err);
-        reject(null);
+        resolve(null);
       } else {
         if (rows.length > 0) {
           photos = rows.map(
@@ -64,7 +64,7 @@ async function fetchFishbasePhotosUrls(scientificName) {
           );
           resolve(photos);
         } else {
-          reject(null);
+          resolve(null);
         }
       }
     });
@@ -74,8 +74,8 @@ async function fetchFishbasePhotosUrls(scientificName) {
 /**
  * Fetch a URL with a proxy, retrying if it fails
  */
-async function axiosWithProxy(url, options) {
-  return await axios({
+function axiosWithProxy(url, options) {
+  return axios({
     method: "get",
     url,
     httpAgent: getRotatedAgent(), // assuming getRotatedAgent() returns an http.Agent object

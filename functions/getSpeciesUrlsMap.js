@@ -18,7 +18,7 @@ async function getSpeciesUrlsMap(
   const progressBar = new cliProgress.SingleBar(
     {
       format:
-        "[{bar}] {percentage}% | ETA: {eta_formatted} | {value}/{total} | ",
+        "[{bar}] {percentage}% | {value}/{total} | ",
     },
     cliProgress.Presets.shades_classic
   );
